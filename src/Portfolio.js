@@ -1,23 +1,28 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as THREE from 'three';
-import { Star, Code, Palette, Zap, Mail, Github, Linkedin, ExternalLink, ChevronDown } from 'lucide-react';
+import { Star, Code, Palette, Zap, Mail, Github, Linkedin, ExternalLink, ChevronDown, Terminal, Monitor, Folder, Music, Heart, Coffee, Gamepad2 } from 'lucide-react';
 
 const Portfolio = () => {
   const [currentSection, setCurrentSection] = useState('Me');
   const [isLoading, setIsLoading] = useState(true);
+  const [currentTime, setCurrentTime] = useState(new Date());
   const canvasRef = useRef(null);
   const sceneRef = useRef(null);
 
-   console.log("isLoading:", isLoading); // ✅ RIGHT HERE
-
-  // 3D Background Setup
+  // Update time every second
   useEffect(() => {
-  // ✅ Always run timeout
-  const timeout = setTimeout(() => {
-    console.log("✅ Timeout complete – setting isLoading to false");
-    setIsLoading(false);
-  }, 2000);
-  
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // 3D Background Setup - Colorful pixel aesthetic
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setIsLoading(false);
+    }, 2000);
+    
     if (!canvasRef.current) return;
 
     const scene = new THREE.Scene();
@@ -27,50 +32,78 @@ const Portfolio = () => {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setClearColor(0x000000, 0);
     
-    // Create floating particles
-    const particlesGeometry = new THREE.BufferGeometry();
-    const particlesCount = 1000;
-    const posArray = new Float32Array(particlesCount * 3);
-    
-    for (let i = 0; i < particlesCount * 3; i++) {
-      posArray[i] = (Math.random() - 0.5) * 10;
-    }
-    
-    particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-    
-    const particlesMaterial = new THREE.PointsMaterial({
-      size: 0.005,
-      color: 0x00ff88,
-      transparent: true,
-      opacity: 0.8
-    });
-    
-    const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
-    scene.add(particlesMesh);
-    
-    // Add geometric shapes
-    const torusGeometry = new THREE.TorusGeometry(0.7, 0.2, 16, 100);
-    const torusMaterial = new THREE.MeshBasicMaterial({ 
-      color: 0x00ff88, 
+    // Create colorful pixel grid
+    const gridGeometry = new THREE.PlaneGeometry(25, 25, 60, 60);
+    const gridMaterial = new THREE.MeshBasicMaterial({ 
+      color: 0xff69b4, 
       wireframe: true,
       transparent: true,
-      opacity: 0.1
+      opacity: 0.15
     });
-    const torus = new THREE.Mesh(torusGeometry, torusMaterial);
-    scene.add(torus);
+    const grid = new THREE.Mesh(gridGeometry, gridMaterial);
+    grid.rotation.x = -Math.PI / 2;
+    grid.position.y = -3;
+    scene.add(grid);
     
-    camera.position.z = 5;
-    sceneRef.current = { scene, camera, renderer, particlesMesh, torus };
+    // Create floating pixel cubes with different colors
+    const cubes = [];
+    const colors = [0xff69b4, 0x9370db, 0x4169e1, 0x00bfff, 0xda70d6, 0xff1493];
+    
+    for (let i = 0; i < 30; i++) {
+      const cubeGeometry = new THREE.BoxGeometry(0.15, 0.15, 0.15);
+      const cubeMaterial = new THREE.MeshBasicMaterial({ 
+        color: colors[Math.floor(Math.random() * colors.length)],
+        transparent: true,
+        opacity: 0.8
+      });
+      const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+      cube.position.set(
+        (Math.random() - 0.5) * 15,
+        (Math.random() - 0.5) * 15,
+        (Math.random() - 0.5) * 15
+      );
+      scene.add(cube);
+      cubes.push(cube);
+    }
+    
+    // Add floating hearts
+    const heartGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+    const hearts = [];
+    for (let i = 0; i < 10; i++) {
+      const heartMaterial = new THREE.MeshBasicMaterial({ 
+        color: 0xff69b4,
+        transparent: true,
+        opacity: 0.6
+      });
+      const heart = new THREE.Mesh(heartGeometry, heartMaterial);
+      heart.position.set(
+        (Math.random() - 0.5) * 20,
+        (Math.random() - 0.5) * 20,
+        (Math.random() - 0.5) * 20
+      );
+      scene.add(heart);
+      hearts.push(heart);
+    }
+    
+    camera.position.z = 8;
+    sceneRef.current = { scene, camera, renderer, grid, cubes, hearts };
     
     // Animation loop
     const animate = () => {
       requestAnimationFrame(animate);
       
-      particlesMesh.rotation.x += 0.001;
-      particlesMesh.rotation.y += 0.001;
+      grid.rotation.z += 0.003;
       
-      torus.rotation.x += 0.01;
-      torus.rotation.y += 0.01;
+      cubes.forEach((cube, index) => {
+        cube.rotation.x += 0.02 * (index * 0.1 + 1);
+        cube.rotation.y += 0.02 * (index * 0.1 + 1);
+        cube.position.y += Math.sin(Date.now() * 0.001 + index) * 0.001;
+      });
+      
+      hearts.forEach((heart, index) => {
+        heart.rotation.y += 0.03;
+        heart.position.y += Math.sin(Date.now() * 0.002 + index) * 0.002;
+      });
       
       renderer.render(scene, camera);
     };
@@ -86,14 +119,11 @@ const Portfolio = () => {
     
     window.addEventListener('resize', handleResize);
     
-    // Loading simulation
-   return () => {
-    clearTimeout(timeout); // ✅ Clean up the timeout
-    window.removeEventListener('resize', handleResize);
-    renderer.dispose();
-  };
-    
-    
+    return () => {
+      clearTimeout(timeout);
+      window.removeEventListener('resize', handleResize);
+      renderer.dispose();
+    };
   }, []);
 
   // Smooth scroll function
@@ -102,13 +132,106 @@ const Portfolio = () => {
     element?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Loading screen
+  // Pixel art components
+  const PixelCat = () => (
+    <div className="w-16 h-16 grid grid-cols-8 gap-0 mx-auto">
+      {[
+        0,1,1,1,1,1,1,0,
+        0,1,2,1,1,2,1,0,
+        0,1,1,1,1,1,1,0,
+        0,1,2,1,1,2,1,0,
+        0,1,1,3,3,1,1,0,
+        0,1,1,1,1,1,1,0,
+        0,0,1,1,1,1,0,0,
+        0,0,0,0,0,0,0,0
+      ].map((pixel, i) => (
+        <div 
+          key={i} 
+          className={`w-2 h-2 ${
+            pixel === 1 ? 'bg-pink-400' : 
+            pixel === 2 ? 'bg-purple-600' : 
+            pixel === 3 ? 'bg-red-400' : 'bg-transparent'
+          }`}
+        />
+      ))}
+    </div>
+  );
+
+  const PixelHeart = () => (
+    <div className="w-8 h-8 grid grid-cols-4 gap-0">
+      {[
+        0,1,0,1,
+        1,1,1,1,
+        1,1,1,1,
+        0,1,1,0
+      ].map((pixel, i) => (
+        <div 
+          key={i} 
+          className={`w-2 h-2 ${pixel === 1 ? 'bg-pink-400' : 'bg-transparent'}`}
+        />
+      ))}
+    </div>
+  );
+
+  const PixelStar = () => (
+    <div className="w-8 h-8 grid grid-cols-4 gap-0">
+      {[
+        0,1,1,0,
+        1,1,1,1,
+        1,1,1,1,
+        0,1,1,0
+      ].map((pixel, i) => (
+        <div 
+          key={i} 
+          className={`w-2 h-2 ${pixel === 1 ? 'bg-yellow-400' : 'bg-transparent'}`}
+        />
+      ))}
+    </div>
+  );
+
+  const PixelComputer = () => (
+    <div className="w-12 h-12 grid grid-cols-6 gap-0">
+      {[
+        0,1,1,1,1,0,
+        0,1,2,2,1,0,
+        0,1,2,2,1,0,
+        0,1,1,1,1,0,
+        0,0,1,1,0,0,
+        0,1,1,1,1,0
+      ].map((pixel, i) => (
+        <div 
+          key={i} 
+          className={`w-2 h-2 ${
+            pixel === 1 ? 'bg-purple-400' : 
+            pixel === 2 ? 'bg-blue-400' : 'bg-transparent'
+          }`}
+        />
+      ))}
+    </div>
+  );
+
+  // Loading screen - Kawaii style
   if (isLoading) {
     return (
-      <div className="fixed inset-0 bg-gradient-to-br from-black via-purple-900 to-black flex items-center justify-center z-50">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-green-400 border-t-transparent rounded-full animate-spin mb-4 mx-auto"></div>
-          <p className="text-green-400 text-xl font-mono">Loading Portfolio...</p>
+      <div className="fixed inset-0 bg-gradient-to-br from-purple-900 via-pink-900 to-blue-900 flex items-center justify-center z-50 font-mono">
+        <div className="text-center border-4 border-pink-400 bg-purple-900/90 p-8 max-w-md rounded-lg">
+          <div className="mb-6">
+            <PixelCat />
+          </div>
+          <div className="text-pink-400 text-left mb-4">
+            <div className="border-b-2 border-pink-400 pb-2 mb-4">
+              <span className="text-white bg-pink-400 px-3 py-1 rounded">✨ KAWAII BOOT ✨</span>
+            </div>
+            <div className="space-y-2">
+              <div>🌸 Loading cute portfolio...</div>
+              <div>💖 Initializing pixel graphics...</div>
+              <div>🎀 Loading kawaii data...</div>
+            </div>
+          </div>
+          <div className="flex items-center justify-center">
+            <div className="w-4 h-4 bg-pink-400 animate-pulse mr-2 rounded"></div>
+            <span className="text-pink-400">Please wait... (◕‿◕)</span>
+          </div>
         </div>
       </div>
     );
@@ -119,234 +242,391 @@ const Portfolio = () => {
       title: "Gradient Boosted Dyslexia Detection Framework",
       description: "Developed a machine learning pipeline using Gradient Boosted Decision Trees with SMOTE oversampling for accurate dyslexia detection. Outperformed five baselines and demonstrated strong real-world clinical potential.",
       tech: ["Python", "Scikit-learn", "SMOTE", "Pandas"],
-      gradient: "from-purple-500 to-pink-500"
+      icon: <PixelComputer />,
+      emoji: "🧠"
     },
     {
       title: "Food Court Management System using Spring Boot",
       description: "Built a modular food court system with JWT-based authentication, real-time order tracking via WebSockets, and role-based access for multiple user types using Spring Boot microservices.",
       tech: ["Spring Boot", "MySQL", "JavaScript", "HTML/CSS"],
-      gradient: "from-blue-500 to-cyan-500"
+      icon: <PixelComputer />,
+      emoji: "🍜"
     },
     {
       title: "Courier Management Platform with Real-Time Tracking",
       description: "Designed a backend system with REST APIs and real-time status updates for courier operations. Optimized database schema with indexing and caching for 40% faster response times.",
       tech: ["Flask", "SQL Server", "REST API", "JavaScript"],
-      gradient: "from-green-500 to-teal-500"
+      icon: <PixelComputer />,
+      emoji: "📦"
     },
     {
       title: "Interactive Portfolio Website",
-      description: "Personal portfolio website showcasing projects and skills with smooth scroll, 3D background using Three.js, and responsive Tailwind CSS design.",
-      tech: ["React", "Tailwind CSS", "Three.js"],
-      gradient: "from-orange-500 to-red-500"
+      description: "Personal portfolio website showcasing projects and skills with smooth scroll, 3D background using Three.js, and responsive design with kawaii pixel aesthetic.",
+      tech: ["React", "CSS", "Three.js"],
+      icon: <PixelComputer />,
+      emoji: "🎨"
     }
   ];
 
   const skills = [
-    { name: "Java", level: 95, icon: <Code className="w-6 h-6" /> },
-  { name: "Python", level: 95, icon: <Code className="w-6 h-6" /> },
-  { name: "C++", level: 90, icon: <Code className="w-6 h-6" /> },
-  { name: "C", level: 85, icon: <Code className="w-6 h-6" /> },
-  { name: "JavaScript", level: 90, icon: <Code className="w-6 h-6" /> },
-
-  { name: "HTML/CSS", level: 95, icon: <Zap className="w-6 h-6" /> },
-  { name: "React", level: 90, icon: <Zap className="w-6 h-6" /> },
-  { name: "Flask", level: 85, icon: <Zap className="w-6 h-6" /> },
-  { name: "Django", level: 85, icon: <Zap className="w-6 h-6" /> },
-  { name: "Spring Boot", level: 80, icon: <Zap className="w-6 h-6" /> },
-  { name: "REST API", level: 80, icon: <Zap className="w-6 h-6" /> },
-  { name: "SQL", level: 90, icon: <Zap className="w-6 h-6" /> }
+    { name: "Java", level: 95, icon: <PixelStar />, emoji: "☕" },
+    { name: "Python", level: 95, icon: <PixelStar />, emoji: "🐍" },
+    { name: "C++", level: 90, icon: <PixelStar />, emoji: "⚡" },
+    { name: "C", level: 85, icon: <PixelStar />, emoji: "🔧" },
+    { name: "JavaScript", level: 90, icon: <PixelStar />, emoji: "🌟" },
+    { name: "HTML/CSS", level: 95, icon: <PixelHeart />, emoji: "🎨" },
+    { name: "React", level: 90, icon: <PixelHeart />, emoji: "⚛️" },
+    { name: "Flask", level: 85, icon: <PixelHeart />, emoji: "🌶️" },
+    { name: "Django", level: 85, icon: <PixelHeart />, emoji: "🎵" },
+    { name: "Spring Boot", level: 80, icon: <PixelHeart />, emoji: "🌸" },
+    { name: "REST API", level: 80, icon: <PixelHeart />, emoji: "🔗" },
+    { name: "SQL", level: 90, icon: <PixelHeart />, emoji: "📊" }
   ];
 
+  const formatTime = (date) => {
+    return date.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    });
+  };
+
+  const formatDate = (date) => {
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
   return (
-    <div className="relative min-h-screen bg-black text-white overflow-x-hidden">
+    <div className="relative min-h-screen bg-gradient-to-br from-purple-900 via-pink-900 to-blue-900 text-white overflow-x-hidden font-mono">
+
       {/* 3D Background Canvas */}
       <canvas
         ref={canvasRef}
         className="fixed inset-0 w-full h-full pointer-events-none z-0"
       />
       
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-black/20 backdrop-blur-md border-b border-green-400/20">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex justify-between items-center">
-            <div className="text-2xl font-bold bg-gradient-to-r from-green-400 to-blue-400 bg-clip-text text-transparent">
-              Portfolio
+      {/* Desktop Taskbar */}
+      <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-purple-800 to-pink-800 border-b-4 border-pink-400 h-10 flex items-center justify-between px-4 text-sm">
+        <div className="flex items-center space-x-4">
+          <div className="bg-gradient-to-r from-pink-600 to-purple-600 border-2 border-pink-400 px-3 py-1 text-white rounded">
+            💖 Kawaii Portfolio OS 💖
+          </div>
+        </div>
+        <div className="flex items-center space-x-4 text-pink-200">
+          <div>🌸 {formatDate(currentTime)}</div>
+          <div className="font-bold">⏰ {formatTime(currentTime)}</div>
+        </div>
+      </div>
+
+      {/* Navigation Window */}
+      <div className="fixed top-16 left-4 z-50 w-64">
+        <div className="bg-gradient-to-br from-purple-800 to-pink-800 border-4 border-pink-400 rounded-lg shadow-lg shadow-pink-400/50">
+          <div className="bg-gradient-to-r from-pink-600 to-purple-600 border-b-2 border-pink-400 px-4 py-2 text-white text-sm flex items-center justify-between rounded-t">
+            <div className="flex items-center space-x-2">
+              <PixelHeart />
+              <span>Navigation</span>
             </div>
-            <div className="hidden md:flex space-x-8">
-              {['Me', 'About', 'Skills', 'Projects', 'Contact'].map((item) => (
-                <button
-                  key={item}
-                  onClick={() => scrollToSection(item.toLowerCase())}
-                  className="hover:text-green-400 transition-colors duration-300 relative group"
-                >
-                  {item}
-                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-green-400 transition-all duration-300 group-hover:w-full"></span>
-                </button>
+            <div className="flex space-x-1">
+              <div className="w-4 h-4 bg-yellow-400 border-2 border-yellow-600 rounded-full"></div>
+              <div className="w-4 h-4 bg-green-400 border-2 border-green-600 rounded-full"></div>
+              <div className="w-4 h-4 bg-red-400 border-2 border-red-600 rounded-full"></div>
+            </div>
+          </div>
+          <div className="p-3 space-y-2">
+            {[
+              { name: 'Me', emoji: '🌸' },
+              { name: 'About', emoji: '💖' },
+              { name: 'Skills', emoji: '⭐' },
+              { name: 'Projects', emoji: '🎨' },
+              { name: 'Contact', emoji: '📧' }
+            ].map((item) => (
+              <button
+                key={item.name}
+                onClick={() => scrollToSection(item.name.toLowerCase())}
+                className="w-full text-left px-3 py-2 text-pink-200 hover:bg-pink-600/50 hover:text-white transition-colors border-2 border-transparent hover:border-pink-400 rounded flex items-center space-x-2"
+              >
+                <span>{item.emoji}</span>
+                <span>{item.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="pt-10">
+        {/* Me Section */}
+        <section id="me" className="relative min-h-screen flex items-center justify-center z-10">
+          <div className="text-center px-6 max-w-4xl">
+            <div className="bg-gradient-to-br from-purple-800/90 to-pink-800/90 border-4 border-pink-400 rounded-lg p-8 mb-8 shadow-lg shadow-pink-400/50">
+              <div className="bg-gradient-to-r from-pink-600 to-purple-600 border-b-2 border-pink-400 px-4 py-2 text-white text-sm mb-6 rounded-t flex items-center justify-center space-x-2">
+                <PixelCat />
+                <span>User Profile - Purva Borse.exe</span>
+              </div>
+              <div className="space-y-6">
+                <div className="text-4xl md:text-6xl font-bold text-pink-300 mb-4">
+                  ✨ PURVA BORSE ✨
+                </div>
+                <div className="text-xl text-purple-200">
+                  🌸 Computer Science Student at SRM 🌸
+                </div>
+                <div className="text-sm text-pink-300 bg-purple-900/50 p-3 rounded-lg border-2 border-pink-400">
+                  Status: Online 💖 | Location: India 🇮🇳 | Specialty: 
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <button
+                onClick={() => scrollToSection('projects')}
+                className="px-8 py-4 bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold border-4 border-pink-400 hover:from-pink-400 hover:to-purple-400 transition-all transform hover:scale-105 rounded-lg shadow-lg shadow-pink-400/50"
+              >
+                🎨 [VIEW PROJECTS] 🎨
+              </button>
+              <button
+                onClick={() => scrollToSection('contact')}
+                className="px-8 py-4 bg-transparent text-pink-300 font-bold border-4 border-pink-400 hover:bg-pink-400 hover:text-white transition-all transform hover:scale-105 rounded-lg"
+              >
+                💌 [CONTACT ME] 💌
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* About Section - Character Select Style */}
+        <section id="about" className="relative py-20 z-10">
+        <div className="container mx-auto px-6">
+            <div className="max-w-6xl mx-auto">
+            {/* Character Select Header */}
+            <div className="text-4xl md:text-6xl font-bold text-white mb-8 tracking-wider text-center" style={{ textShadow: '4px 4px 0px #000', fontFamily: 'monospace' }}>
+                ABOUT ME
+            </div>
+            
+            {/* Character Select Window */}
+            <div className="bg-gradient-to-br from-pink-300 to-pink-200 border-8 border-black rounded-lg shadow-2xl shadow-black/50 mb-8">
+                {/* Window Header with Tabs */}
+                <div className="bg-gradient-to-r from-purple-400 to-pink-400 border-b-4 border-black px-4 py-2">
+                <div className="flex justify-center space-x-2">
+                    <div className="bg-pink-200 border-4 border-black px-4 py-2 rounded-t-lg">
+                    <div className="w-8 h-6 bg-gradient-to-b from-gray-300 to-gray-400 border-2 border-black rounded"></div>
+                    </div>
+                    <div className="bg-gray-300 border-4 border-black px-4 py-2 rounded-t-lg">
+                    <div className="w-8 h-6 bg-gradient-to-b from-gray-400 to-gray-500 border-2 border-black rounded"></div>
+                    </div>
+                    <div className="bg-gray-300 border-4 border-black px-4 py-2 rounded-t-lg">
+                    <div className="w-8 h-6 bg-gradient-to-b from-gray-400 to-gray-500 border-2 border-black rounded"></div>
+                    </div>
+                    <div className="bg-gray-300 border-4 border-black px-4 py-2 rounded-t-lg">
+                    <div className="w-8 h-6 bg-gradient-to-b from-gray-400 to-gray-500 border-2 border-black rounded"></div>
+                    </div>
+                </div>
+                </div>
+                
+                {/* Character Info Panel */}
+                <div className="p-8">
+                <div className="text-2xl font-bold text-black mb-6" style={{ fontFamily: 'monospace' }}>
+                    "Aspriring Developer and ML enthusiast"
+                </div>
+                
+                <div className="flex flex-col lg:flex-row gap-8 items-center lg:items-start">
+                {/* Character Portrait + Pixel Decoration */}
+                <div className="relative w-48 h-48 bg-gradient-to-br from-pink-400 to-purple-400 border-4 border-black rounded-lg flex items-center justify-center overflow-hidden">
+                    <img
+                    src="/download20250705165252.png"
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                    />
+
+                
+                </div>
+
+        {/* Character Stats */}
+        <div className="flex-1 text-left">
+            <div className="bg-pink-200 border-4 border-black rounded-lg p-6 space-y-4">
+            <div className="text-black font-bold" style={{ fontFamily: 'monospace' }}>
+                <div className="mb-2">
+                <span className="text-gray-950">Specialty:</span> Full-Stack Development
+                </div>
+                <div className="mb-2">
+                <span className="text-gray-1100">Experience:</span> Web Technologies & AI
+                </div>
+                <div className="mb-2">
+                <span className="text-gray-1100">Style:</span> Kawaii Design & Immersive UX
+                </div>
+                <div className="mb-2">
+                <span className="text-gray-1100">Passion:</span> Problem Solving & Innovation
+                </div>
+                <div className="mb-4">
+                <span className="text-gray-1100">Mission:</span> Creating meaningful digital connections
+                </div>
+            </div>
+        </div>
+        </div>
+
+    </div>
+  </div>
+  </div>
+  </div>
+  </div>
+</section>
+{/* Skills Section */}
+        <section id="skills" className="relative py-20 z-10">
+          <div className="container mx-auto px-6">
+            <div className="text-3xl font-bold text-pink-300 mb-12 text-center flex items-center justify-center space-x-3">
+              <PixelStar />
+              <span>⭐ SKILLS.DAT ⭐</span>
+              <PixelStar />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {skills.map((skill, index) => (
+                <div key={index} className="bg-gradient-to-br from-purple-800/90 to-pink-800/90 border-4 border-pink-400 rounded-lg shadow-lg shadow-pink-400/30">
+                  <div className="bg-gradient-to-r from-pink-600 to-purple-600 border-b-2 border-pink-400 px-3 py-2 text-white text-sm rounded-t flex items-center space-x-2">
+                    <span>{skill.emoji}</span>
+                    <span>{skill.name}.exe</span>
+                  </div>
+                  <div className="p-4">
+                    <div className="flex items-center mb-3 space-x-2">
+                      <div className="text-pink-300">
+                        {skill.icon}
+                      </div>
+                      <span className="text-white font-semibold">{skill.name}</span>
+                    </div>
+                    <div className="w-full bg-purple-900 border-2 border-pink-400 rounded-full h-6 mb-2 overflow-hidden">
+                      <div
+                        className="bg-gradient-to-r from-pink-400 to-purple-400 h-full flex items-center justify-center text-white text-xs font-bold transition-all duration-1000"
+                        style={{ width: `${skill.level}%` }}
+                      >
+                        {skill.level}%
+                      </div>
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
-        </div>
-      </nav>
+        </section>
 
-      {/* Me Section */}
-      <section id="Me" className="relative min-h-screen flex items-center justify-center z-10">
-        <div className="text-center px-6">
-          <h1 className="text-6xl md:text-8xl font-bold mb-6 bg-gradient-to-r from-green-400 via-blue-400 to-purple-400 bg-clip-text text-transparent animate-pulse">
-            Purva Borse
-          </h1>
-          <p className="text-xl md:text-2xl mb-8 text-gray-300">
-            Computer Science Student at SRM
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button
-              onClick={() => scrollToSection('projects')}
-              className="px-8 py-4 bg-gradient-to-r from-green-400 to-blue-400 text-black font-semibold rounded-full hover:scale-105 transition-transform duration-300 shadow-lg hover:shadow-green-400/50"
-            >
-              View My Work
-            </button>
-            <button
-              onClick={() => scrollToSection('contact')}
-              className="px-8 py-4 border-2 border-green-400 text-green-400 font-semibold rounded-full hover:bg-green-400 hover:text-black transition-all duration-300"
-            >
-              Get In Touch
-            </button>
-          </div>
-        </div>
-        <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 animate-bounce">
-          <ChevronDown className="w-8 h-8 text-green-400" />
-        </div>
-      </section>
-
-      {/* About Section */}
-      <section id="about" className="relative py-20 z-10">
-        <div className="container mx-auto px-6">
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-4xl md:text-5xl font-bold mb-12 bg-gradient-to-r from-green-400 to-blue-400 bg-clip-text text-transparent">
-              About Me
-            </h2>
-            <div className="bg-gradient-to-r from-green-400/10 to-blue-400/10 rounded-2xl p-8 backdrop-blur-sm border border-green-400/20">
-              <p className="text-lg text-gray-300 leading-relaxed mb-6">
-                I'm a passionate full-stack developer with a love for creating immersive digital experiences. 
-                With expertise in modern web technologies and a keen eye for design, I transform ideas into 
-                reality through code.
-              </p>
-              <p className="text-lg text-gray-300 leading-relaxed">
-                When I'm not coding, you can find me exploring the latest in AI, 3D graphics, and emerging 
-                technologies. I believe in the power of technology to solve real-world problems and create 
-                meaningful connections.
-              </p>
+        {/* Projects Section */}
+        <section id="projects" className="relative py-20 z-10">
+          <div className="container mx-auto px-6">
+            <div className="text-3xl font-bold text-pink-300 mb-12 text-center flex items-center justify-center space-x-3">
+              <PixelComputer />
+              <span>🎨 PROJECTS.DIR 🎨</span>
+              <PixelComputer />
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Skills Section */}
-      <section id="skills" className="relative py-20 z-10">
-        <div className="container mx-auto px-6">
-          <h2 className="text-4xl md:text-5xl font-bold text-center mb-12 bg-gradient-to-r from-green-400 to-blue-400 bg-clip-text text-transparent">
-            Skills
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {skills.map((skill, index) => (
-              <div key={index} className="group">
-                <div className="bg-gradient-to-r from-green-400/10 to-blue-400/10 rounded-2xl p-6 backdrop-blur-sm border border-green-400/20 hover:border-green-400/40 transition-all duration-300 hover:scale-105">
-                  <div className="flex items-center mb-4">
-                    <div className="text-green-400 mr-3">
-                      {skill.icon}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {projects.map((project, index) => (
+                <div key={index} className="bg-gradient-to-br from-purple-800/90 to-pink-800/90 border-4 border-pink-400 rounded-lg shadow-lg shadow-pink-400/30">
+                  <div className="bg-gradient-to-r from-pink-600 to-purple-600 border-b-2 border-pink-400 px-4 py-2 text-white text-sm rounded-t flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <span>{project.emoji}</span>
+                      <span>Project_{index + 1}.exe</span>
                     </div>
-                    <h3 className="text-xl font-semibold">{skill.name}</h3>
+                    <div className="flex space-x-1">
+                      <div className="w-4 h-4 bg-yellow-400 border-2 border-yellow-600 rounded-full"></div>
+                      <div className="w-4 h-4 bg-green-400 border-2 border-green-600 rounded-full"></div>
+                      <div className="w-4 h-4 bg-red-400 border-2 border-red-600 rounded-full"></div>
+                    </div>
                   </div>
-                  <div className="w-full bg-gray-700 rounded-full h-2 mb-2">
-                    <div
-                      className="bg-gradient-to-r from-green-400 to-blue-400 h-2 rounded-full transition-all duration-1000 delay-200"
-                      style={{ width: `${skill.level}%` }}
-                    ></div>
-                  </div>
-                  <p className="text-sm text-gray-400">{skill.level}%</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Projects Section */}
-      <section id="projects" className="relative py-20 z-10">
-        <div className="container mx-auto px-6">
-          <h2 className="text-4xl md:text-5xl font-bold text-center mb-12 bg-gradient-to-r from-green-400 to-blue-400 bg-clip-text text-transparent">
-            Projects
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {projects.map((project, index) => (
-              <div key={index} className="group">
-                <div className="bg-gradient-to-r from-green-400/5 to-blue-400/5 rounded-2xl p-8 backdrop-blur-sm border border-green-400/20 hover:border-green-400/40 transition-all duration-300 hover:scale-105">
-                  <div className={`w-full h-48 bg-gradient-to-r ${project.gradient} rounded-xl mb-6 flex items-center justify-center group-hover:scale-105 transition-transform duration-300`}>
-                    <ExternalLink className="w-12 h-12 text-white opacity-50 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                  <h3 className="text-2xl font-bold mb-3 text-green-400">{project.title}</h3>
-                  <p className="text-gray-300 mb-4">{project.description}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {project.tech.map((tech, techIndex) => (
-                      <span key={techIndex} className="px-3 py-1 bg-green-400/20 text-green-400 rounded-full text-sm">
-                        {tech}
-                      </span>
-                    ))}
+                  <div className="p-6">
+                    <div className="flex items-center mb-4 space-x-3">
+                      <div className="text-pink-300">
+                        {project.icon}
+                      </div>
+                      <h3 className="text-lg font-bold text-pink-300">{project.title}</h3>
+                    </div>
+                    <p className="text-purple-200 mb-4 text-sm">{project.description}</p>
+                    <div className="space-y-3">
+                      <div className="text-pink-300 text-sm font-semibold">✨ Technologies:</div>
+                      <div className="flex flex-wrap gap-2">
+                        {project.tech.map((tech, techIndex) => (
+                          <span key={techIndex} className="px-3 py-1 bg-gradient-to-r from-pink-600 to-purple-600 text-white border-2 border-pink-400 text-xs rounded-full">
+                            {tech}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Contact Section */}
-      <section id="contact" className="relative py-20 z-10">
-        <div className="container mx-auto px-6">
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-4xl md:text-5xl font-bold mb-12 bg-gradient-to-r from-green-400 to-blue-400 bg-clip-text text-transparent">
-              Get In Touch
-            </h2>
-            <div className="bg-gradient-to-r from-green-400/10 to-blue-400/10 rounded-2xl p-8 backdrop-blur-sm border border-green-400/20">
-              <p className="text-lg text-gray-300 mb-8">
-                Let's collaborate on something amazing! I'm always open to discussing new opportunities 
-                and interesting projects.
-              </p>
-              <div className="flex justify-center space-x-8">
-                <a
-                  href="mailto:john@example.com"
-                  className="flex items-center space-x-2 text-green-400 hover:text-green-300 transition-colors"
-                >
-                  <Mail className="w-6 h-6" />
-                  <span>Email</span>
-                </a>
-                <a
-                  href="https://github.com"
-                  className="flex items-center space-x-2 text-green-400 hover:text-green-300 transition-colors"
-                >
-                  <Github className="w-6 h-6" />
-                  <span>GitHub</span>
-                </a>
-                <a
-                  href="https://linkedin.com"
-                  className="flex items-center space-x-2 text-green-400 hover:text-green-300 transition-colors"
-                >
-                  <Linkedin className="w-6 h-6" />
-                  <span>LinkedIn</span>
-                </a>
+        {/* Contact Section */}
+        <section id="contact" className="relative py-20 z-10">
+          <div className="container mx-auto px-6">
+            <div className="max-w-4xl mx-auto">
+              <div className="bg-gradient-to-br from-purple-800/90 to-pink-800/90 border-4 border-pink-400 rounded-lg shadow-lg shadow-pink-400/50">
+                <div className="bg-gradient-to-r from-pink-600 to-purple-600 border-b-2 border-pink-400 px-4 py-2 text-white text-sm rounded-t flex items-center space-x-2">
+                  <Heart className="w-5 h-5" />
+                  <span>Contact.exe - Kawaii Terminal</span>
+                </div>
+                <div className="p-8">
+                  <div className="text-2xl font-bold text-pink-300 mb-6 flex items-center space-x-3">
+                    <PixelHeart />
+                    <span>💌 ESTABLISH_CONNECTION.BAT 💌</span>
+                  </div>
+                  <div className="space-y-6 text-purple-200">
+                    <p>
+                      🌸 Let's collaborate on something amazing! I'm always open to discussing new opportunities 
+                      and interesting projects. Let's create something kawaii together! (◕‿◕)✨
+                    </p>
+                    <div className="mt-8 space-y-4">
+                      <div className="text-pink-300 text-lg">🔗 Available connections:</div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <a
+                          href="mailto:purva@example.com"
+                          className="flex items-center space-x-3 p-4 bg-gradient-to-r from-pink-600 to-purple-600 border-2 border-pink-400 hover:from-pink-500 hover:to-purple-500 transition-all transform hover:scale-105 rounded-lg"
+                        >
+                          <Mail className="w-6 h-6" />
+                          <span>💌 Email.exe</span>
+                        </a>
+                        <a
+                          href="https://github.com"
+                          className="flex items-center space-x-3 p-4 bg-gradient-to-r from-pink-600 to-purple-600 border-2 border-pink-400 hover:from-pink-500 hover:to-purple-500 transition-all transform hover:scale-105 rounded-lg"
+                        >
+                          <Github className="w-6 h-6" />
+                          <span>🐙 GitHub.exe</span>
+                        </a>
+                        <a
+                          href="https://linkedin.com"
+                          className="flex items-center space-x-3 p-4 bg-gradient-to-r from-pink-600 to-purple-600 border-2 border-pink-400 hover:from-pink-500 hover:to-purple-500 transition-all transform hover:scale-105 rounded-lg"
+                        >
+                          <Linkedin className="w-6 h-6" />
+                          <span>💼 LinkedIn.exe</span>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Footer */}
-      <footer className="relative py-8 border-t border-green-400/20 z-10">
-        <div className="container mx-auto px-6 text-center">
-          <p className="text-gray-400">
-            © 2024 John Doe. Built with React & Three.js
-          </p>
-        </div>
-      </footer>
+        {/* Footer */}
+        <footer className="relative py-8 border-t-4 border-pink-400 z-10">
+          <div className="container mx-auto px-6 text-center">
+            <div className="bg-gradient-to-r from-purple-800/90 to-pink-800/90 border-4 border-pink-400 rounded-lg p-6 shadow-lg shadow-pink-400/50">
+              <div className="flex items-center justify-center space-x-3 mb-4">
+                <PixelHeart />
+                <span className="text-pink-300 text-lg">Made by Purva Borse</span>
+                <PixelHeart />
+              </div>
+              <div className="text-purple-200 text-sm">
+                🌸 Powered by React + Three.js + Kawaii Magic ✨
+              </div>
+              <div className="mt-4 text-pink-300 text-xs">
+                © 2024 Purva Borse. All rights reserved. (◕‿◕)♡
+              </div>
+            </div>
+          </div>
+        </footer>
+      </div>
     </div>
   );
 };
